@@ -9,28 +9,28 @@ import Scan       from './pages/Scan';
 import Results    from './pages/Results';
 import Redirect   from './pages/Redirect';
 
-function ScrollToTop() {
+function ScrollTop() {
   const { pathname } = useLocation();
-  React.useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  React.useEffect(() => { window.scrollTo(0,0); }, [pathname]);
   return null;
 }
 
-function AppInner() {
+function Inner() {
   const [results, setResults] = useState(null);
   return (
     <>
-      <ScrollToTop />
+      <ScrollTop />
       <Nav />
       <main>
         <Routes>
-          <Route path="/"            element={<Home />} />
-          <Route path="/amazon-fba"  element={<FBAPage />} />
+          <Route path="/"             element={<Home />} />
+          <Route path="/amazon-fba"   element={<FBAPage />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/philosophy"  element={<Philosophy />} />
-          <Route path="/scan"        element={<Scan setResults={setResults} />} />
-          <Route path="/results"     element={<Results results={results} />} />
-          <Route path="/redirect"    element={<Redirect />} />
-          <Route path="*"            element={<Home />} />
+          <Route path="/philosophy"   element={<Philosophy />} />
+          <Route path="/scan"         element={<Scan setResults={setResults} />} />
+          <Route path="/results"      element={<Results results={results} />} />
+          <Route path="/redirect"     element={<Redirect />} />
+          <Route path="*"             element={<Home />} />
         </Routes>
       </main>
       <Footer />
@@ -39,9 +39,5 @@ function AppInner() {
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AppInner />
-    </BrowserRouter>
-  );
+  return <BrowserRouter><Inner /></BrowserRouter>;
 }
