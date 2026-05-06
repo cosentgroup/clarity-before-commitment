@@ -4,12 +4,55 @@ import { resultData } from '../data/questions';
 
 export default function Results({ results }) {
   const nav = useNavigate();
-  const [email, setEmail] = useState('');
-  const [sent,  setSent]  = useState(false);
+  const [email,   setEmail]   = useState('');
+  const [sent,    setSent]    = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error,   setError]   = useState('');
+
   const type = results?.type ?? 'conditional';
   const d    = resultData[type];
 
   if (!results) { nav('/scan'); return null; }
+
+  const sendResults = async () => {
+    if (!email.trim() || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const res = await fetch('/api/send-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type, score: results.score })
+      });
+      if (res.ok) {
+        setSent(true);
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    } catch (e) {
+      setError('Could not send — please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const goToAssessment = async () => {
+    try {
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level1Type: type, email: sent ? email : '' })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Payment setup coming soon. Enter your email above to be notified when it launches.');
+      }
+    } catch (e) {
+      alert('Payment service not yet configured. Enter your email above to be notified when it launches.');
+    }
+  };
 
   return (
     <div className="page fade-in">
@@ -41,43 +84,49 @@ export default function Results({ results }) {
 
       <hr className="divider" />
 
-      {/* Email capture */}
+      {/* Email capture — now real */}
       <div className="email-section">
         <h3>Save your results</h3>
         <p className="small" style={{ marginTop:'0.5rem' }}>
-          Receive your result summary by email. Many people revisit this when circumstances change —
-          a retake is always available.
+          Receive your result summary by email. Many people revisit this when circumstances change.
         </p>
-        {sent
-          ? <p className="caption" style={{ marginTop:'0.875rem' }}>Sent. You are welcome to return at any time.</p>
-          : <div className="email-row">
-              <input className="email-in" type="email" placeholder="your@email.com" value={email}
-                onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&email.trim()&&setSent(true)} />
-              <button className="email-btn" onClick={()=>email.trim()&&setSent(true)}>Send</button>
+        {sent ? (
+          <p style={{ marginTop:'0.875rem', fontSize:'15px', color:'var(--teal)', fontWeight:500 }}>
+            ✓ Sent. Check your inbox.
+          </p>
+        ) : (
+          <>
+            <div className="email-row">
+              <input className="email-in" type="email" placeholder="your@email.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendResults()} />
+              <button className="email-btn" onClick={sendResults} disabled={sending}>
+                {sending ? 'Sending…' : 'Send'}
+              </button>
             </div>
-        }
+            {error && <p style={{ marginTop:'0.5rem', fontSize:'13px', color:'var(--red)' }}>{error}</p>}
+          </>
+        )}
       </div>
 
       <hr className="divider" />
 
-      {/* Decision guidance */}
       <div>
         <h3>Decision guidance</h3>
         <div className="result-guidance" style={{ color: d.accent }}>{d.guidance}</div>
         <p>{d.next}</p>
       </div>
 
-      {/* Next-step panel */}
       {type === 'redirect' ? (
         <div className="assess-panel" style={{ background:'var(--slate-lt)', borderColor:'#bdd0de' }}>
           <h3>Redirection Explorer — Free</h3>
           <p style={{ marginTop:'0.875rem' }}>
-            Based on your profile, explore business archetypes that tend to fit your temperament
-            and constraints more naturally.
+            Based on your profile, explore business archetypes that tend to fit your
+            temperament and constraints more naturally.
           </p>
           <div className="btn-row" style={{ marginTop:'1.5rem' }}>
-            <button className="btn btn-primary" onClick={()=>nav('/redirect')}>Explore alternatives</button>
-            <button className="btn btn-ghost"   onClick={()=>nav('/')}>Return home</button>
+            <button className="btn btn-primary" onClick={() => nav('/redirect')}>Explore alternatives</button>
+            <button className="btn btn-ghost" onClick={() => nav('/')}>Return home</button>
           </div>
         </div>
       ) : (
@@ -94,15 +143,13 @@ export default function Results({ results }) {
             <div><div className="meta-label">Price</div><div className="meta-val">$49</div></div>
           </div>
           <div className="btn-row" style={{ marginTop:0 }}>
-            <button className="btn btn-primary"
-              onClick={()=>alert('The Decision Fit Assessment will be available shortly. Enter your email above to be notified when it launches.')}>
+            <button className="btn btn-primary" onClick={goToAssessment}>
               Continue to full assessment
             </button>
-            <button className="btn btn-ghost" onClick={()=>nav('/')}>Return home</button>
+            <button className="btn btn-ghost" onClick={() => nav('/')}>Return home</button>
           </div>
           <p className="caption" style={{ marginTop:'1rem' }}>
-            You are also free to stop here. Many people find this level alone provides sufficient
-            clarity to make a considered decision.
+            You are also free to stop here. Many people find this level alone provides sufficient clarity.
           </p>
         </div>
       )}
